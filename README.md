@@ -7,19 +7,21 @@ Interactive Minesweeper game with AI solver guidance for learning optimal strate
 ## Features
 
 - **Interactive Gameplay**: 3×3 to 20×20 boards with adjustable difficulty
-- **AI Solver**: Teacher mode shows optimal moves step-by-step
-- **Smart Hints**: Get next recommended move
-- **Accessibility**: 
+- **Config-driven Modes**: capability toggles and mode profiles (Beginner / Coach / Advanced)
+- **AI Solver**: teacher mode and hint support from deterministic safe-cell logic
+- **Persistence**: board setup and mode preferences are saved locally with schema versioning
+- **Accessibility**:
   - Highlight mode, sound feedback, flag counter, flag confirmation
-  - Dark/light theme toggle
+  - Dark/light and color-vision themes
   - Responsive desktop/tablet layout
 
 ## Quick Start
 
 ```bash
 npm install
-npm run dev        # Dev server: http://localhost:5176/mine_sweeper/
+npm run dev        # Dev server
 npm run build      # Production build
+npm run test       # Unit + integration-style tests (node:test)
 npm run preview    # Preview production
 ```
 
@@ -28,28 +30,26 @@ npm run preview    # Preview production
 ```
 src/
 ├── chapters/minesweeper/
-│   ├── components/        # Board, Cell, Solver UI
-│   ├── hooks/            # useMinesweeper game engine
-│   └── constants/        # Board config
-├── App.jsx              # Main app with routing
-└── main.jsx             # Entry point
+│   ├── config/              # Game config, features, profiles, validation
+│   ├── engine/              # Pure game domain logic
+│   ├── hooks/               # UI orchestration hook
+│   ├── persistence/         # Local settings storage + versioning
+│   ├── components/          # Board, Cell, Guide, modular UI panels
+│   └── chapterConfig.js     # Chapter metadata, config schema/defaults
+├── chapters/index.jsx       # Chapter registry contract
+├── App.jsx                  # Route shell
+└── main.jsx                 # Entry point
 ```
 
-## How to Play
+## Flexibility model
 
-**Left Panel (Toggles):**
-- Highlight, Teacher, Hint, Sound, Flag Counter, Flag Feedback
+Minesweeper behavior is now centralized in configuration:
 
-**Right Panel (Setup):**
-- Board Size (3-20), Mine Count
-- Game status and metrics
-
-## Tech Stack
-
-- React 18.3
-- Vite 6.4
-- Tailwind CSS 3.4
-- GitHub Pages (auto-deploy)
+- Board limits and presets
+- First-click protection constraints
+- UI feature capability map
+- Mode profiles for quickly applying feature sets
+- Config validation to reject invalid combinations
 
 ## License
 

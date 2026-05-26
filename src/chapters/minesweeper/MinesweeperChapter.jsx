@@ -3,99 +3,20 @@ import { Link } from 'react-router-dom';
 import Board from './components/Board';
 import SolverGuidePage from './components/SolverGuidePage';
 import ThemeSelector from '../../components/ThemeSelector';
-import { MAX_BOARD_SIZE, getBoardArea, getNeighborIds } from './constants/board';
+import BoardSetupPanel from './components/ui/BoardSetupPanel';
+import BinarySliderControl from './components/ui/BinarySliderControl';
+import MetricsPanel from './components/ui/MetricsPanel';
+import ResultModal from './components/ui/ResultModal';
+import {
+  MODE_PROFILES,
+  UI_FEATURES,
+  applyModeProfile,
+  getDefaultFeatureState,
+  getMaxPlayableMines,
+} from './config/gameConfig';
+import { getNeighborIds } from './constants/board';
 import { useMinesweeper } from './hooks/useMinesweeper';
-
-function getMaxPlayableMines(size) {
-  const protectedCells = size === 3 ? 1 : 9;
-  return Math.max(0, getBoardArea(size) - protectedCells);
-}
-
-function BoardSetupPanel({
-  idPrefix,
-  title,
-  subtitle,
-  size,
-  mineCount,
-  maxMines,
-  onSizeChange,
-  onMineChange,
-}) {
-  const minePercent = getBoardArea(size) > 0 ? Math.round((mineCount / getBoardArea(size)) * 100) : 0;
-
-  return (
-    <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-3">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">{title}</div>
-      <div className="mt-1 text-xs text-slate-400">{subtitle}</div>
-
-      <div className="mt-4">
-        <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor={`${idPrefix}-size`}>
-          Board size
-        </label>
-        <input
-          id={`${idPrefix}-size`}
-          type="range"
-          min={3}
-          max={MAX_BOARD_SIZE}
-          value={size}
-          onChange={(event) => onSizeChange(Number(event.target.value))}
-          className="mt-2 w-full accent-sky-400"
-        />
-        <div className="mt-1 text-sm font-semibold text-slate-100">{size}x{size}</div>
-      </div>
-
-      <div className="mt-4">
-        <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor={`${idPrefix}-mines`}>
-          Mine count
-        </label>
-        <input
-          id={`${idPrefix}-mines`}
-          type="range"
-          min={0}
-          max={maxMines}
-          step={1}
-          value={mineCount}
-          onChange={(event) => onMineChange(Number(event.target.value))}
-          className="mt-2 w-full accent-amber-400"
-        />
-        <div className="mt-1 text-sm font-semibold text-slate-100">{mineCount} mines</div>
-      </div>
-
-      <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Live preview</div>
-        <div className="mt-1 text-sm text-slate-200">
-          {size}x{size} with {mineCount} mines
-        </div>
-        <div className="text-xs text-slate-500">Mine field intensity: {minePercent}%</div>
-      </div>
-    </div>
-  );
-}
-
-function BinarySliderControl({ id, label, value, onChange, accentClass = 'accent-sky-400' }) {
-  const numericValue = value ? 1 : 0;
-
-  return (
-    <div className="rounded-lg border border-slate-700/50 bg-slate-900/70 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor={id}>
-          {label}
-        </label>
-        <span className={`text-xs font-semibold ${value ? 'text-sky-200' : 'text-slate-500'}`}>{value ? 'ON' : 'OFF'}</span>
-      </div>
-      <input
-        id={id}
-        type="range"
-        min={0}
-        max={1}
-        step={1}
-        value={numericValue}
-        onChange={(event) => onChange(Number(event.target.value) === 1)}
-        className={`mt-2 w-full ${accentClass}`}
-      />
-    </div>
-  );
-}
+import { saveSettings } from './persistence/settingsStorage';
 
 function getAudioContext(audioContextRef) {
   if (typeof window === 'undefined') {
@@ -164,10 +85,9 @@ export default function MinesweeperChapter() {
     resetGame,
     setDifficultyPreset,
     safeCellIds,
+    settings,
   } = useMinesweeper();
-  const [teacherMode, setTeacherMode] = useState(false);
-  const [highlightMode, setHighlightMode] = useState(false);
-  const [hintMode, setHintMode] = useState(false);
+
   const [activePage, setActivePage] = useState('game');
   const [gridFullscreen, setGridFullscreen] = useState(false);
   const [fullscreenBoardViewport, setFullscreenBoardViewport] = useState({ width: 0, height: 0 });
@@ -175,10 +95,22 @@ export default function MinesweeperChapter() {
   const [highlightAnchors, setHighlightAnchors] = useState(new Set());
   const [hoveredCellId, setHoveredCellId] = useState(null);
   const [selectedCellId, setSelectedCellId] = useState(null);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [showFlagDiscovery, setShowFlagDiscovery] = useState(false);
-  const [showRemainingFlags, setShowRemainingFlags] = useState(true);
   const [resultModal, setResultModal] = useState(null);
+  const [modeProfile, setModeProfile] = useState(settings.modeProfile || 'beginner');
+  const [featureState, setFeatureState] = useState({
+    ...getDefaultFeatureState(),
+    ...(settings.features || {}),
+  });
+
+  const {
+    teacherMode,
+    highlightMode,
+    hintMode,
+    soundEnabled,
+    showFlagDiscovery,
+    showRemainingFlags,
+  } = featureState;
+
   const audioContextRef = useRef(null);
   const lastGameStateRef = useRef(status);
   const fullscreenBoardRef = useRef(null);
@@ -199,6 +131,34 @@ export default function MinesweeperChapter() {
 
   const safeCells = metrics.totalSafeCells;
   const maxMines = getMaxPlayableMines(boardSize);
+
+  function persistSettings(nextPartial) {
+    saveSettings({
+      boardSize,
+      mineCount,
+      modeProfile,
+      features: featureState,
+      ...nextPartial,
+    });
+  }
+
+  function setFeature(featureId, enabled) {
+    setFeatureState((previous) => {
+      const next = {
+        ...previous,
+        [featureId]: enabled,
+      };
+      persistSettings({ features: next });
+      return next;
+    });
+  }
+
+  function handleProfileChange(profileId) {
+    const nextFeatures = applyModeProfile(profileId, featureState);
+    setModeProfile(profileId);
+    setFeatureState(nextFeatures);
+    persistSettings({ modeProfile: profileId, features: nextFeatures });
+  }
 
   useEffect(() => {
     if (!highlightAnchors.size) {
@@ -228,17 +188,17 @@ export default function MinesweeperChapter() {
 
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 't') {
         event.preventDefault();
-        setTeacherMode((value) => !value);
+        setFeature('teacherMode', !teacherMode);
       }
 
       if (event.key.toLowerCase() === 'h' && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        setHighlightMode((value) => !value);
+        setFeature('highlightMode', !highlightMode);
       }
     }
 
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [gridFullscreen]);
+  }, [gridFullscreen, highlightMode, teacherMode]);
 
   useEffect(() => {
     if (!gridFullscreen) {
@@ -419,23 +379,17 @@ export default function MinesweeperChapter() {
     };
   }
 
-  function getMaxMinesForBoard(size) {
-    const protectedCells = size === 3 ? 1 : 9;
-    return Math.max(0, getBoardArea(size) - protectedCells);
-  }
-
   function applyDifficultySettings(size, mines) {
-    setTeacherMode(false);
-    setHighlightMode(false);
+    setFeatureState((previous) => ({ ...previous, teacherMode: false, highlightMode: false }));
     setHighlightAnchors(new Set());
     setHoveredCellId(null);
     setSelectedCellId(null);
-    const nextMineCount = Math.max(0, Math.min(getMaxMinesForBoard(size), mines));
+    const nextMineCount = Math.max(0, Math.min(getMaxPlayableMines(size), mines));
     setDifficultyPreset(size, nextMineCount);
   }
 
   function handleBoardSizeChange(size) {
-    applyDifficultySettings(size, Math.min(mineCount, getMaxMinesForBoard(size)));
+    applyDifficultySettings(size, Math.min(mineCount, getMaxPlayableMines(size)));
   }
 
   function handleMineCountChange(nextMineCount) {
@@ -462,24 +416,16 @@ export default function MinesweeperChapter() {
     return <SolverGuidePage onBack={returnToGamePage} />;
   }
 
-    return (
-      <main className="h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-1.5 py-1 lg:px-2 flex flex-col overflow-hidden">
-      <style>{`
-        @keyframes subtle-bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-2px); }
-        }
-        .animate-subtle-bounce { animation: subtle-bounce 2s ease-in-out infinite; }
-      `}</style>
-        <div className="flex w-full max-w-none flex-col gap-1 h-full overflow-hidden">
-        {/* Top Navigation Bar */}
-          <nav className="rounded-lg border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm px-2 py-1 shadow-lg flex-shrink-0">
+  return (
+    <main className="h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-1.5 py-1 lg:px-2 flex flex-col overflow-hidden">
+      <div className="flex w-full max-w-none flex-col gap-1 h-full overflow-hidden">
+        <nav className="rounded-lg border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm px-2 py-1 shadow-lg flex-shrink-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="aql-hero-title truncate text-base font-black tracking-tight bg-gradient-to-r from-sky-300 to-cyan-300 bg-clip-text text-transparent sm:text-lg">
                 Minesweeper
               </div>
-              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold border transition ${ 
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold border transition ${
                 status === 'won' ? 'border-emerald-400/50 bg-emerald-500/15 text-emerald-200' :
                 status === 'lost' ? 'border-rose-400/50 bg-rose-500/15 text-rose-200' :
                 'border-sky-400/50 bg-sky-500/15 text-sky-200'
@@ -514,91 +460,52 @@ export default function MinesweeperChapter() {
           </div>
         </nav>
 
-        {/* Game Metrics Bar */}
         <div className="rounded-lg border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm p-2 flex-shrink-0 xl:hidden">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 lg:gap-3">
-            <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3 text-center">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Safe</div>
-              <div className="mt-0.5 text-base font-bold text-sky-300">{safeCells}</div>
-            </div>
-            <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3 text-center">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Mines</div>
-              <div className="mt-0.5 text-base font-bold text-rose-300">{mineCount}</div>
-            </div>
-            {showRemainingFlags && (
-              <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3 text-center">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Flags</div>
-                <div className="mt-0.5 text-base font-bold text-amber-300">{metrics.remainingMines}</div>
-              </div>
-            )}
-            <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3 text-center">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Moves</div>
-              <div className="mt-0.5 text-base font-bold text-purple-300">{metrics.moves}</div>
-            </div>
-            <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3 text-center">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Board</div>
-              <div className="mt-0.5 text-base font-bold text-slate-300">{boardSize}×{boardSize}</div>
-            </div>
-          </div>
+          <MetricsPanel
+            safeCells={safeCells}
+            mineCount={mineCount}
+            remainingMines={metrics.remainingMines}
+            moves={metrics.moves}
+            boardSize={boardSize}
+            showRemainingFlags={showRemainingFlags}
+          />
         </div>
 
         <div className="grid flex-1 min-h-0 gap-2 xl:grid-cols-[280px_minmax(0,1fr)_330px]">
           <aside className="hidden xl:flex min-h-0 flex-col gap-2 overflow-auto rounded-lg border border-slate-700/50 bg-slate-900/60 p-3 backdrop-blur-sm lesson-scrollbar">
             <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-3">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Left controls</div>
-              <div className="mt-1 text-xs text-slate-400">Live gameplay settings as sliders.</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Modes</div>
+              <div className="mt-1 text-xs text-slate-400">Capability-driven mode controls.</div>
             </div>
 
-            <BinarySliderControl
-              id="left-highlight-slider"
-              label="Highlight mode"
-              value={highlightMode}
-              onChange={setHighlightMode}
-              accentClass="accent-sky-400"
-            />
+            <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-3">
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400" htmlFor="mode-profile">
+                Profile
+              </label>
+              <select
+                id="mode-profile"
+                value={modeProfile}
+                onChange={(event) => handleProfileChange(event.target.value)}
+                className="mt-2 w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-sm text-slate-100"
+              >
+                {Object.values(MODE_PROFILES).map((profile) => (
+                  <option key={profile.id} value={profile.id}>{profile.label}</option>
+                ))}
+              </select>
+            </div>
 
-            <BinarySliderControl
-              id="left-teacher-slider"
-              label="Teacher mode"
-              value={teacherMode}
-              onChange={setTeacherMode}
-              accentClass="accent-cyan-400"
-            />
-
-            <BinarySliderControl
-              id="left-hint-slider"
-              label="Hint mode"
-              value={hintMode}
-              onChange={setHintMode}
-              accentClass="accent-emerald-400"
-            />
-
-            <BinarySliderControl
-              id="left-sound-slider"
-              label="Sound"
-              value={soundEnabled}
-              onChange={setSoundEnabled}
-              accentClass="accent-amber-400"
-            />
-
-            <BinarySliderControl
-              id="left-counter-slider"
-              label="Flag counter"
-              value={showRemainingFlags}
-              onChange={setShowRemainingFlags}
-              accentClass="accent-lime-400"
-            />
-
-            <BinarySliderControl
-              id="left-flag-feedback-slider"
-              label="Flag feedback"
-              value={showFlagDiscovery}
-              onChange={setShowFlagDiscovery}
-              accentClass="accent-rose-400"
-            />
+            {Object.values(UI_FEATURES).map((feature) => (
+              <BinarySliderControl
+                key={feature.id}
+                id={`left-${feature.id}-slider`}
+                label={feature.label}
+                value={Boolean(featureState[feature.id])}
+                onChange={(value) => setFeature(feature.id, value)}
+                accentClass={feature.accentClass}
+              />
+            ))}
           </aside>
 
-          {/* Game Board Section */}
           <section className="rounded-lg border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm p-1 shadow-lg min-h-0 flex flex-col">
             <div ref={boardViewportRef} className="flex-1 min-h-0 overflow-hidden rounded-lg bg-slate-950/80 p-1 ring-1 ring-slate-700/30 flex items-start justify-center">
               <div className="min-w-fit">
@@ -625,26 +532,15 @@ export default function MinesweeperChapter() {
           </section>
 
           <aside className="hidden xl:flex min-h-0 flex-col gap-2 overflow-auto rounded-lg border border-slate-700/50 bg-slate-900/60 p-3 backdrop-blur-sm lesson-scrollbar">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-2 text-center">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Safe</div>
-                <div className="mt-0.5 text-base font-bold text-sky-300">{safeCells}</div>
-              </div>
-              <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-2 text-center">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Mines</div>
-                <div className="mt-0.5 text-base font-bold text-rose-300">{mineCount}</div>
-              </div>
-              {showRemainingFlags && (
-                <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-2 text-center">
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Flags</div>
-                  <div className="mt-0.5 text-base font-bold text-amber-300">{metrics.remainingMines}</div>
-                </div>
-              )}
-              <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 p-2 text-center">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Moves</div>
-                <div className="mt-0.5 text-base font-bold text-purple-300">{metrics.moves}</div>
-              </div>
-            </div>
+            <MetricsPanel
+              safeCells={safeCells}
+              mineCount={mineCount}
+              remainingMines={metrics.remainingMines}
+              moves={metrics.moves}
+              boardSize={boardSize}
+              showRemainingFlags={showRemainingFlags}
+              compact
+            />
 
             <BoardSetupPanel
               idPrefix="sidebar-difficulty"
@@ -676,10 +572,8 @@ export default function MinesweeperChapter() {
                 </button>
               </div>
             </div>
-
           </aside>
         </div>
-
       </div>
 
       {gridFullscreen && (
@@ -687,7 +581,7 @@ export default function MinesweeperChapter() {
           <div className="mx-auto flex h-full w-full max-w-[2000px] flex-col gap-2">
             <div className="flex flex-col gap-3 rounded-lg border border-slate-700/50 bg-slate-900/70 backdrop-blur-sm px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex flex-wrap items-center gap-2 text-sm text-slate-300">
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold border ${ 
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold border ${
                   status === 'won' ? 'border-emerald-400/50 bg-emerald-500/15 text-emerald-200' :
                   status === 'lost' ? 'border-rose-400/50 bg-rose-500/15 text-rose-200' :
                   'border-sky-400/50 bg-sky-500/15 text-sky-200'
@@ -707,7 +601,6 @@ export default function MinesweeperChapter() {
                 <button
                   type="button"
                   onClick={handleResetBoard}
-                  title="Reset the board while staying in fullscreen"
                   className="rounded-lg border border-slate-600 bg-slate-800/80 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition"
                 >
                   Reset
@@ -715,7 +608,6 @@ export default function MinesweeperChapter() {
                 <button
                   type="button"
                   onClick={() => setGridFullscreen(false)}
-                  title="Exit fullscreen view"
                   className="rounded-lg border border-slate-600 bg-slate-800/80 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition"
                 >
                   Exit
@@ -738,7 +630,7 @@ export default function MinesweeperChapter() {
                 showFlagDiscovery={showFlagDiscovery}
                 gameWon={gameWon}
                 gameLost={gameLost}
-                isFullscreen={true}
+                isFullscreen
                 viewportWidth={fullscreenBoardViewport.width}
                 viewportHeight={fullscreenBoardViewport.height}
                 onCellClick={(cell) => createClickHandler(cell)}
@@ -750,50 +642,14 @@ export default function MinesweeperChapter() {
         </div>
       )}
 
-      {resultModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-          <button
-            type="button"
-            aria-label="Close result modal"
-            onClick={() => setResultModal(null)}
-            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
-          />
-
-          <div className="result-modal-in relative w-full max-w-md rounded-2xl border border-slate-600/50 bg-gradient-to-br from-slate-900 to-slate-950 p-8 shadow-2xl">
-            <div className="text-6xl leading-none mb-4">{resultModal === 'won' ? '🏆✨' : '💪🧠'}</div>
-            
-            <h3 className="text-3xl font-black text-slate-50 mb-3">
-              {resultModal === 'won' ? 'Community Win!' : 'Excellent Attempt!'}
-            </h3>
-            
-            <p className="text-sm leading-relaxed text-slate-300 mb-6">
-              {resultModal === 'won'
-                ? 'Great solve. Your pattern reading and decision flow were sharp. Keep the momentum and try a tougher board.'
-                : 'Nice attempt. Every miss is signal, not failure. Take a breath, reset, and beat this board with better pattern calls.'}
-            </p>
-
-            <div className="flex gap-3 flex-col sm:flex-row">
-              <button
-                type="button"
-                onClick={() => {
-                  setResultModal(null);
-                  handleResetBoard();
-                }}
-                className="flex-1 rounded-lg border border-sky-400/40 bg-sky-500/15 hover:bg-sky-500/25 px-4 py-3 text-sm font-semibold text-sky-100 transition"
-              >
-                {resultModal === 'won' ? '🚀 New Challenge' : '🔄 Try Again'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setResultModal(null)}
-                className="flex-1 rounded-lg border border-slate-600 bg-slate-800/80 hover:bg-slate-700 px-4 py-3 text-sm font-semibold text-slate-100 transition"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ResultModal
+        resultModal={resultModal}
+        onRestart={() => {
+          setResultModal(null);
+          handleResetBoard();
+        }}
+        onClose={() => setResultModal(null)}
+      />
     </main>
   );
 }
