@@ -16,17 +16,6 @@ import {
 } from '../engine/gameEngine.js';
 import { loadSettings, saveSettings } from '../persistence/settingsStorage.js';
 
-function createMetrics(boardSize, mineCount, moves, flagsPlaced, revealedSafeCells) {
-  return {
-    moves,
-    remainingMines: mineCount - flagsPlaced,
-    revealedSafeCells,
-    totalSafeCells: getBoardArea(boardSize) - mineCount,
-    boardSize,
-    mineCount,
-  };
-}
-
 export function useMinesweeper() {
   const initialSettings = loadSettings();
   const initialBoardSize = sanitizeBoardSize(initialSettings.boardSize);
@@ -48,7 +37,14 @@ export function useMinesweeper() {
   const boardPreset = getBoardPreset(boardSize);
 
   const metrics = useMemo(
-    () => createMetrics(boardSize, mineCount, moves, flagsPlaced, revealedSafeCells),
+    () => ({
+      moves,
+      remainingMines: mineCount - flagsPlaced,
+      revealedSafeCells,
+      totalSafeCells: getBoardArea(boardSize) - mineCount,
+      boardSize,
+      mineCount,
+    }),
     [boardSize, mineCount, moves, flagsPlaced, revealedSafeCells],
   );
 

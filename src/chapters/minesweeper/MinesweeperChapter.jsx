@@ -96,7 +96,7 @@ export default function MinesweeperChapter() {
   const [hoveredCellId, setHoveredCellId] = useState(null);
   const [selectedCellId, setSelectedCellId] = useState(null);
   const [resultModal, setResultModal] = useState(null);
-  const [modeProfile, setModeProfile] = useState(settings.modeProfile || 'beginner');
+  const [modeProfile, setModeProfile] = useState(initialSettings.modeProfile || 'beginner');
   const [featureState, setFeatureState] = useState({
     ...getDefaultFeatureState(),
     ...(initialSettings.features || {}),
@@ -132,32 +132,34 @@ export default function MinesweeperChapter() {
   const safeCells = metrics.totalSafeCells;
   const maxMines = getMaxPlayableMines(boardSize);
 
-  function persistSettings(nextPartial) {
-    saveSettings({
-      boardSize,
-      mineCount,
-      modeProfile,
-      features: featureState,
-      ...nextPartial,
-    });
-  }
-
   function setFeature(featureId, enabled) {
     setFeatureState((previous) => {
       const next = {
         ...previous,
         [featureId]: enabled,
       };
-      persistSettings({ features: next });
+      saveSettings({
+        boardSize,
+        mineCount,
+        modeProfile,
+        features: next,
+      });
       return next;
     });
   }
 
   function handleProfileChange(profileId) {
-    const nextFeatures = applyModeProfile(profileId, featureState);
     setModeProfile(profileId);
-    setFeatureState(nextFeatures);
-    persistSettings({ modeProfile: profileId, features: nextFeatures });
+    setFeatureState((previous) => {
+      const next = applyModeProfile(profileId, previous);
+      saveSettings({
+        boardSize,
+        mineCount,
+        modeProfile: profileId,
+        features: next,
+      });
+      return next;
+    });
   }
 
   useEffect(() => {
