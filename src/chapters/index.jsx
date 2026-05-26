@@ -1,4 +1,4 @@
-import MinesweeperChapter from './minesweeper';
+import { MINESWEEPER_CHAPTER_META } from './minesweeper/chapterConfig';
 
 function PlaceholderChapter({ title }) {
   return (
@@ -12,15 +12,7 @@ function PlaceholderChapter({ title }) {
   );
 }
 
-export const chapters = [
-  {
-    id: 'minesweeper',
-    title: 'Minesweeper',
-    route: '/chapters/minesweeper',
-    status: 'active',
-    description: 'Chapter 1: pattern reasoning and constraint logic.',
-    component: MinesweeperChapter,
-  },
+const PLANNED_CHAPTERS = [
   {
     id: 'chapter-2',
     title: 'Chapter 2',
@@ -28,6 +20,10 @@ export const chapters = [
     status: 'planned',
     description: 'Coming soon.',
     component: () => <PlaceholderChapter title="Chapter 2" />,
+    configSchema: null,
+    defaultConfig: null,
+    capabilities: { guide: false, fullscreen: false },
+    training: { hasGuidePage: false },
   },
   {
     id: 'chapter-3',
@@ -36,8 +32,14 @@ export const chapters = [
     status: 'planned',
     description: 'Coming soon.',
     component: () => <PlaceholderChapter title="Chapter 3" />,
+    configSchema: null,
+    defaultConfig: null,
+    capabilities: { guide: false, fullscreen: false },
+    training: { hasGuidePage: false },
   },
 ];
+
+export const chapters = [MINESWEEPER_CHAPTER_META, ...PLANNED_CHAPTERS];
 
 export function getChapterById(id) {
   return chapters.find((chapter) => chapter.id === id);

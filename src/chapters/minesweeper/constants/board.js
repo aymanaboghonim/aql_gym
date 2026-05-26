@@ -1,31 +1,20 @@
-export const BOARD_PRESETS = [
-  { size: 9, mines: 10, label: '9 x 9' },
-  { size: 12, mines: 20, label: '12 x 12' },
-  { size: 16, mines: 40, label: '16 x 16' },
-];
+import {
+  AQL_GRAPH_NAME,
+  BOARD_LIMITS,
+  BOARD_PRESETS,
+  calculateMinesForSize,
+  getBoardArea,
+  getBoardPreset,
+} from '../config/gameConfig.js';
 
-export const MIN_BOARD_SIZE = 3;
-export const MAX_BOARD_SIZE = 20;
-export const DEFAULT_BOARD_SIZE = 9;
-export const DEFAULT_MINE_COUNT = 10;
+export { BOARD_PRESETS, calculateMinesForSize, getBoardPreset, getBoardArea, AQL_GRAPH_NAME };
+
+export const MIN_BOARD_SIZE = BOARD_LIMITS.minSize;
+export const MAX_BOARD_SIZE = BOARD_LIMITS.maxSize;
+export const DEFAULT_BOARD_SIZE = BOARD_LIMITS.defaultSize;
+export const DEFAULT_MINE_COUNT = getBoardPreset(DEFAULT_BOARD_SIZE).mines;
+
 export const X_LABELS = 'ABCDEFGHIJKLMNOPQRST'.split('');
-export const AQL_GRAPH_NAME = 'Mines';
-
-export function calculateMinesForSize(size) {
-  return Math.max(1, Math.ceil(size * size * 0.15));
-}
-
-export function getBoardPreset(size) {
-  return BOARD_PRESETS.find((preset) => preset.size === size) ?? {
-    size,
-    mines: calculateMinesForSize(size),
-    label: `${size} x ${size}`,
-  };
-}
-
-export function getBoardArea(size) {
-  return size * size;
-}
 
 export function getXLabels(size) {
   return X_LABELS.slice(0, size);
