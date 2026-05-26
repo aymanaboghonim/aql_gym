@@ -62,12 +62,29 @@ function createSafeZone(anchorIndex, boardSize) {
   return new Set([anchorIndex, ...getNeighborIndices(row, col, boardSize)]);
 }
 
+function secureRandomInt(maxExclusive) {
+  if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) {
+    return 0;
+  }
+
+  const maxUint32 = 0x100000000;
+  const limit = Math.floor(maxUint32 / maxExclusive) * maxExclusive;
+  const random = new Uint32Array(1);
+
+  while (true) {
+    crypto.getRandomValues(random);
+    const value = random[0];
+    if (value < limit) {
+      return value % maxExclusive;
+    }
+  }
+}
+
 function shuffle(values) {
   const result = [...values];
 
   for (let index = result.length - 1; index > 0; index -= 1) {
-    const randomValue = crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
-    const swapIndex = Math.floor(randomValue * (index + 1));
+    const swapIndex = secureRandomInt(index + 1);
     [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
   }
 

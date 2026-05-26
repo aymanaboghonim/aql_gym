@@ -85,7 +85,7 @@ export default function MinesweeperChapter() {
     resetGame,
     setDifficultyPreset,
     safeCellIds,
-    settings,
+    initialSettings,
   } = useMinesweeper();
 
   const [activePage, setActivePage] = useState('game');
@@ -99,7 +99,7 @@ export default function MinesweeperChapter() {
   const [modeProfile, setModeProfile] = useState(settings.modeProfile || 'beginner');
   const [featureState, setFeatureState] = useState({
     ...getDefaultFeatureState(),
-    ...(settings.features || {}),
+    ...(initialSettings.features || {}),
   });
 
   const {
@@ -601,6 +601,8 @@ export default function MinesweeperChapter() {
                 <button
                   type="button"
                   onClick={handleResetBoard}
+                  title="Reset the board while staying in fullscreen"
+                  aria-label="Reset board in fullscreen"
                   className="rounded-lg border border-slate-600 bg-slate-800/80 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition"
                 >
                   Reset
@@ -608,6 +610,8 @@ export default function MinesweeperChapter() {
                 <button
                   type="button"
                   onClick={() => setGridFullscreen(false)}
+                  title="Exit fullscreen view"
+                  aria-label="Exit fullscreen view"
                   className="rounded-lg border border-slate-600 bg-slate-800/80 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition"
                 >
                   Exit

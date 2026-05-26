@@ -167,6 +167,6 @@ export function useMinesweeper() {
     setDifficulty,
     setDifficultyPreset,
     safeCellIds,
-    settings: initialSettings,
+    initialSettings,
   };
 }
