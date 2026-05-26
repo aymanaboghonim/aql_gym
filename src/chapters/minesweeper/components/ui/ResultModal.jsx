@@ -19,7 +19,7 @@ export default function ResultModal({ resultModal, onRestart, onClose }) {
         >
           ×
         </button>
-        <div className="text-6xl leading-none mb-4">{resultModal === 'won' ? '🏆✨' : '💪🧠'}</div>
+        <div role="img" aria-label={resultModal === 'won' ? 'Victory celebration' : 'Motivational encouragement'} className="text-6xl leading-none mb-4">{resultModal === 'won' ? '🏆✨' : '💪��'}</div>
         <h3 className="text-3xl font-black text-slate-50 mb-3">{resultModal === 'won' ? 'Community Win!' : 'Excellent Attempt!'}</h3>
 
         <p className="text-sm leading-relaxed text-slate-300 mb-6">

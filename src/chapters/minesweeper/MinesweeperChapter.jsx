@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Board from './components/Board';
 import SolverGuidePage from './components/SolverGuidePage';
@@ -132,7 +132,7 @@ export default function MinesweeperChapter() {
   const safeCells = metrics.totalSafeCells;
   const maxMines = getMaxPlayableMines(boardSize);
 
-  function setFeature(featureId, enabled) {
+  const setFeature = useCallback((featureId, enabled) => {
     setFeatureState((previous) => {
       const next = {
         ...previous,
@@ -146,7 +146,7 @@ export default function MinesweeperChapter() {
       });
       return next;
     });
-  }
+  }, [boardSize, mineCount, modeProfile]);
 
   function handleProfileChange(profileId) {
     setModeProfile(profileId);

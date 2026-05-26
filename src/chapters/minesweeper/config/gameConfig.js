@@ -14,7 +14,7 @@ export const BOARD_PRESETS = [
 
 export const GAME_GENERATION = {
   maxGenerationAttempts: 220,
-  solverMaxIterations: 250,
+  solvabilityCheckMaxIterations: 250,
 };
 
 export const FIRST_CLICK_PROTECTION = {

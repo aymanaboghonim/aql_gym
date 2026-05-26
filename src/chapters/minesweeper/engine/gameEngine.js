@@ -185,7 +185,7 @@ function solveUsingLogic(board, anchorIndex, boardSize, mineCount) {
   let progress = true;
   let iterations = 0;
 
-  while (progress && iterations < GAME_GENERATION.solverMaxIterations) {
+  while (progress && iterations < GAME_GENERATION.solvabilityCheckMaxIterations) {
     iterations += 1;
     progress = false;
 
