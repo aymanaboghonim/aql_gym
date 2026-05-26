@@ -58,5 +58,12 @@ test('save/load roundtrip persists settings with schema version', () => {
   assert.equal(loaded.mineCount, 15);
   assert.equal(loaded.modeProfile, 'coach');
   assert.equal(loaded.features.hintMode, true);
-  assert.ok(localStorage.getItem(SETTINGS_STORAGE_KEY));
+  const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+  assert.ok(raw);
+
+  const parsed = JSON.parse(raw);
+  assert.equal(typeof parsed.version, 'number');
+  assert.equal(parsed.boardSize, 12);
+  assert.equal(parsed.mineCount, 15);
+  assert.equal(parsed.modeProfile, 'coach');
 });

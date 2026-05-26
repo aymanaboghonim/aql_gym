@@ -11,6 +11,14 @@ export default function ResultModal({ resultModal, onRestart, onClose }) {
       />
 
       <div className="result-modal-in relative w-full max-w-md rounded-2xl border border-slate-600/50 bg-gradient-to-br from-slate-900 to-slate-950 p-8 shadow-2xl">
+        <button
+          type="button"
+          aria-label="Close result modal"
+          onClick={onClose}
+          className="absolute right-3 top-3 h-8 w-8 rounded-full border border-slate-600 bg-slate-800/80 text-slate-200 transition hover:bg-slate-700"
+        >
+          ×
+        </button>
         <div className="text-6xl leading-none mb-4">{resultModal === 'won' ? '🏆✨' : '💪🧠'}</div>
         <h3 className="text-3xl font-black text-slate-50 mb-3">{resultModal === 'won' ? 'Community Win!' : 'Excellent Attempt!'}</h3>
 

@@ -71,13 +71,17 @@ function secureRandomInt(maxExclusive) {
   const limit = Math.floor(maxUint32 / maxExclusive) * maxExclusive;
   const random = new Uint32Array(1);
 
-  while (true) {
+  const maxAttempts = 2048;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     crypto.getRandomValues(random);
     const value = random[0];
     if (value < limit) {
       return value % maxExclusive;
     }
   }
+
+  return random[0] % maxExclusive;
 }
 
 function shuffle(values) {

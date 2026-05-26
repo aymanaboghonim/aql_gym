@@ -200,7 +200,7 @@ export default function MinesweeperChapter() {
 
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [gridFullscreen, highlightMode, teacherMode]);
+  }, [gridFullscreen, highlightMode, teacherMode, setFeature]);
 
   useEffect(() => {
     if (!gridFullscreen) {
